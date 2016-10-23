@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="https://openlayers.org/en/v3.18.2/css/ol.css" type="text/css">
     <style>
       .map {
-        height: 400px;
+        height: 800px;
         width: 100%;
       }
     </style>
@@ -17,12 +17,29 @@
     <h2>My Map</h2>
     <div id="map" class="map"></div>
     <script type="text/javascript">
+
+
+
+
+      function init_map(features) {
+
+
+        var source = new ol.source.Vector({
+          features: features
+        });
+
+        var vectorLayer = new ol.layer.Vector({
+          source: source,
+          sphericalMercator: true
+        });
+
       var map = new ol.Map({
         target: 'map',
         layers: [
           new ol.layer.Tile({
             source: new ol.source.OSM()
-          })
+          }),
+          vectorLayer
         ],
         view: new ol.View({
           //-37.68636,144.8924733
@@ -31,6 +48,44 @@
           zoom: 8
         })
       });
+      }
+
+
+
+      var loadData = function(data) {
+        var features = new Array();
+        data.events.forEach(function(event) {
+          if (event.body.lat && event.body.lon) {
+            var heat = Math.floor((event.body.rssi+35)/20*255)
+            var colour = 'rgb('+ heat + ',0,'+ (255-heat) +')'
+            var stroke = new ol.style.Stroke({color: colour, width: 2});
+            var fill = new ol.style.Fill({color: colour});
+            var style = new ol.style.Style({
+                image: new ol.style.RegularShape({
+                  fill: fill,
+                  stroke: stroke,
+                  points: 4,
+                  radius: 3,
+                  radius2: 3,
+                  angle: 0
+                })
+              })
+
+            var record = new ol.Feature(new ol.geom.Point(ol.proj.fromLonLat([event.body.lon, event.body.lat])))
+            record.setStyle(style)
+            features.push(record)
+          }
+
+
+        })
+
+        init_map(features)
+      }
+
+      $.get( "http://oslo.chrisandjo.com:9090/events?pageSize=5000&systemName=dump1090&from=2016-10-23T20:00:00+11:00", loadData);
+
+
+
     </script>
   </body>
 </html>
